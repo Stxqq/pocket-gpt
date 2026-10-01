@@ -9,9 +9,16 @@ const listeners = [];
 let current = null;
 let pending = 0;
 
-function placeIndicator(name) {
+export const currentView = () => current;
+
+function placeIndicator(name, instant) {
   const tab = tabs.find((t) => t.dataset.view === name);
+  if (instant) indicator.style.transition = "none";
   indicator.style.transform = `translateX(${tab.offsetLeft - indicator.offsetLeft}px)`;
+  if (instant) {
+    indicator.getBoundingClientRect(); // commit the jump before the transition comes back
+    indicator.style.transition = "";
+  }
   for (const t of tabs) {
     if (t === tab) t.setAttribute("aria-current", "page");
     else t.removeAttribute("aria-current");
@@ -19,11 +26,11 @@ function placeIndicator(name) {
 }
 
 function show(name) {
-  if (!views.has(name) || name === current) return;
+  if (name === current) return;
   const previous = current && views.get(current);
   const next = views.get(name);
   current = name;
-  placeIndicator(name);
+  placeIndicator(name, !previous);
   const token = ++pending;
 
   const enter = () => {
@@ -32,13 +39,14 @@ function show(name) {
     window.scrollTo({ top: 0, behavior: "instant" });
     next.classList.remove("leave");
     next.classList.add("enter");
-    next.getBoundingClientRect();
+    next.getBoundingClientRect(); // flush styles so dropping .enter animates
     next.classList.remove("enter");
     for (const fn of listeners) fn(name);
   };
 
   if (!previous || prefersReducedMotion()) return enter();
   previous.classList.add("leave");
+  // matches the .3s exit in style.css
   setTimeout(enter, 300);
 }
 
@@ -47,7 +55,12 @@ export function onView(fn) {
 }
 
 export function startViews() {
-  const fromHash = () => show(location.hash.slice(1) || "generate");
+  const fromHash = () => {
+    const name = location.hash.slice(1);
+    show(views.has(name) ? name : "generate");
+  };
   addEventListener("hashchange", fromHash);
   fromHash();
+  // the tabs narrow at the mobile breakpoint
+  new ResizeObserver(() => current && placeIndicator(current, true)).observe(pill);
 }
