@@ -1,6 +1,10 @@
 # pocket-gpt
 
-A GPT trained from scratch in pure NumPy, on top of an autograd engine small enough to read in an afternoon.
+A GPT trained from scratch in pure NumPy, on an autograd engine of about 360 lines.
+
+<p align="center">
+  <a href="https://stxqq.github.io/pocket-gpt/"><img src=".github/assets/hero.gif" width="880" alt="pocket-gpt generating Shakespeare in the browser, then showing an attention head"></a>
+</p>
 
 <p align="center">
   <a href="https://github.com/Stxqq/pocket-gpt/actions/workflows/ci.yml"><img src="https://github.com/Stxqq/pocket-gpt/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
@@ -19,8 +23,8 @@ laptop CPU in about a quarter of an hour.
 
 I wanted something between micrograd (scalars, great for intuition, far too
 slow for a transformer) and nanoGPT (fast, but the interesting part lives
-inside PyTorch). Here every gradient that flows through the model is one you
-can find, read and step through.
+inside PyTorch). Here every gradient in the model is plain numpy you can put
+a breakpoint in.
 
 ## How it works
 
@@ -89,6 +93,8 @@ than batch noise:
 ```
 1,214,592 parameters, vocab 65
 step     0 | train 4.1978 | val 4.1960
+step     0 | loss 4.1889 | lr 1.00e-05 | norm 6.43 | 19,488 tok/s
+...
 step   250 | train 2.3107 | val 2.3211
 ...
 step  3750 | train 1.2094 | val 1.5367
@@ -157,6 +163,12 @@ sliders, *Inside* draws the attention weights of any layer and head over the
 last 64 characters together with the model's top 10 guesses at each spot,
 and *Model* shows the numbers and loss curve from the training log.
 
+<p align="center">
+  <img src=".github/assets/generate.png" width="32%" alt="Generate view">
+  <img src=".github/assets/inside.png" width="32%" alt="Inside view: attention map of layer 3, head 2">
+  <img src=".github/assets/model.png" width="32%" alt="Model view: model card and loss curve">
+</p>
+
 `scripts/check_web.mjs` runs the JavaScript engine under Node and compares
 its logits with `fixture.json`, which the numpy model wrote at export time.
 It also fills the window, restarts it from the last half the way the worker
@@ -186,10 +198,11 @@ pocketgpt/
   data.py         train/val token files and random windows
   checkpoint.py   .npz checkpoints
   export.py       browser export
-scripts/prepare.py
-train.py  sample.py  export.py
+scripts/
+  prepare.py      download and encode tiny shakespeare
+  check_web.mjs   JS engine vs numpy logits
 tests/            gradient checks, masking, overfitting, optimizer, export
-scripts/check_web.mjs   JS engine vs numpy logits
+train.py  sample.py  export.py
 docs/
   index.html, style.css   the demo page
   js/gpt.js       the forward pass in JavaScript, with a kv cache
@@ -225,17 +238,18 @@ numpy 2.5 with Apple Accelerate, from a short benchmark before the long run
 | 4 layers, width 160 | 1.27M | 133 | 30,686 |
 | 6 layers, width 128 | 1.21M | 144 | 28,514 |
 
-The one optimization that mattered: GELU originally used `x**3`, and float32
-`power` in numpy is about 35x slower than `x * x * x`. Swapping it took the
-4-layer step from 132 ms to 102 ms.
+The biggest single win: GELU originally used `x**3`, and float32 `power` in
+numpy is about 35x slower than `x * x * x`. Swapping it took the 4-layer step
+from 132 ms to 102 ms.
 
 In the browser, Chrome samples about 675 characters/s (five 800-character
 runs, 658 to 697) on the same laptop while it was busy with other work. In the
-JavaScript matmul, handling four input rows per pass over the output was the
-change that mattered: 446 to about 780 characters/s under Node.
+JavaScript matmul, handling four input rows per pass over the output took
+Node from 446 to about 780 characters/s.
 
 The test suite (64 tests, gradient checks for every op and for a whole
-2-layer GPT in float64) runs in under half a second.
+2-layer GPT in float64) runs in about a second on a fresh install, 0.3 to
+0.4 s once Python's caches are warm.
 
 ## References
 
