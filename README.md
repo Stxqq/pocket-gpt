@@ -3,7 +3,7 @@
 A GPT trained from scratch in pure NumPy, on an autograd engine of about 360 lines.
 
 <p align="center">
-  <a href="https://stxqq.github.io/pocket-gpt/"><img src=".github/assets/hero.gif" width="880" alt="pocket-gpt generating Shakespeare in the browser, then showing an attention head"></a>
+  <a href="https://stxqq.github.io/pocket-gpt/"><img src=".github/assets/hero.gif" width="880" alt="pocket-gpt generating Shakespeare in the browser next to the attention map of layer 4, head 2"></a>
 </p>
 
 <p align="center">
@@ -28,26 +28,15 @@ a breakpoint in.
 
 ## How it works
 
-```
- token ids (B, T)
-      |
-  wte[ids] + wpe[:T]           embedding gather, backward is a scatter-add
-      |
-  +---v-------------------+
-  |  LayerNorm            |
-  |  causal attention     |    q k^T / sqrt(d), future masked to -inf,
-  |  + residual           |    fused softmax, 4 heads
-  |  LayerNorm            |
-  |  MLP 4x, GELU (tanh)  |
-  |  + residual           |    x 6 blocks
-  +---+-------------------+
-      |
-  LayerNorm
-      |
-  x @ wte.T                    output head shares the embedding matrix
-      |
-  logits (B, T, 65) --> cross entropy (fused)
-```
+<p align="center">
+  <img src=".github/assets/how-it-works.png" width="880" alt="The forward pass on the prompt ROMEO, newline, I lo: eleven character ids, token plus position embeddings, six blocks of attention and MLP, and a 65-way softmax that puts 81% on v">
+</p>
+
+The prompt above is real: the published model reads `ROMEO:` and `I lo`
+and gives `v` 81.0%, `o` 6.9% and `n` 5.8%. The little map is layer 4, head
+2, where the last `o` mostly looks back at `l`, `o` and `I`. Underneath it is
+a GPT-2 style decoder: pre-norm blocks, four causal heads of width 32, a 4x
+MLP with GELU, and an output head that reuses the token embedding.
 
 Every op computes its value eagerly and, while gradients are on, keeps a
 closure that turns the output gradient into one gradient per input.
@@ -165,7 +154,7 @@ and *Model* shows the numbers and loss curve from the training log.
 
 <p align="center">
   <img src=".github/assets/generate.png" width="32%" alt="Generate view">
-  <img src=".github/assets/inside.png" width="32%" alt="Inside view: attention map of layer 3, head 2">
+  <img src=".github/assets/inside.png" width="32%" alt="Inside view: attention map of layer 4, head 2">
   <img src=".github/assets/model.png" width="32%" alt="Model view: model card and loss curve">
 </p>
 
