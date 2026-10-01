@@ -15,6 +15,7 @@ const fixture = readJSON("fixture.json");
 const raw = readFileSync(new URL("weights.bin", dir));
 const buffer = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength);
 const gpt = new GPT(manifest, buffer);
+let failed = false;
 
 const ids = gpt.encode(fixture.prompt);
 if (ids.join() !== fixture.tokens.join()) {
@@ -32,10 +33,30 @@ fixture.tokens.forEach((token, t) => {
     count++;
   });
 });
-
-const ok = worst < TOLERANCE;
+const close = worst < TOLERANCE;
+failed ||= !close;
 console.log(
-  `${count} logits for ${JSON.stringify(fixture.prompt)}: ` +
-    `max |js - numpy| = ${worst.toExponential(2)} (limit ${TOLERANCE}) ${ok ? "ok" : "FAIL"}`,
+  `${count} logits over ${fixture.tokens.length} positions: ` +
+    `max |js - numpy| = ${worst.toExponential(2)} (limit ${TOLERANCE}) ${close ? "ok" : "FAIL"}`,
 );
-process.exit(ok ? 0 : 1);
+
+// The worker restarts a full window from its last half (worker.js). A reused
+// cache has to give exactly what a fresh one gives for the same tokens.
+if (fixture.tokens.length === gpt.blockSize) {
+  const tail = fixture.tokens.slice(1 - gpt.blockSize / 2);
+  const next = fixture.tokens[0];
+  context.reset();
+  for (const token of tail) context.push(token);
+  const reused = Float32Array.from(context.push(next));
+
+  const fresh = new Context(gpt);
+  for (const token of tail) fresh.push(token);
+  const expected = fresh.push(next);
+  const same = reused.every((value, v) => value === expected[v]);
+  failed ||= !same;
+  console.log(`restart from the last ${tail.length + 1} tokens: ${same ? "ok" : "FAIL"}`);
+} else {
+  console.log(`fixture covers ${fixture.tokens.length} of ${gpt.blockSize} positions; restart check skipped`);
+}
+
+process.exit(failed ? 1 : 0);

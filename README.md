@@ -135,8 +135,9 @@ print(x.grad)  # [2.36098803 4.36203309 6.33719472]
 
 `python export.py` writes the browser format: `weights.bin` (every parameter
 back to back as little-endian float32), `model.json` (config, vocab, shape
-and byte offset of each tensor) and `fixture.json` (logits for the prompt
-`ROMEO:`, so the JavaScript port can prove it computes the same function).
+and byte offset of each tensor) and `fixture.json` (logits for a full
+128-character window of the val split, so the JavaScript port can prove it
+computes the same function at every position).
 
 ## In the browser
 
@@ -158,11 +159,14 @@ and *Model* shows the numbers and loss curve from the training log.
 
 `scripts/check_web.mjs` runs the JavaScript engine under Node and compares
 its logits with `fixture.json`, which the numpy model wrote at export time.
-CI fails if any of them differ by more than 1e-4:
+It also fills the window, restarts it from the last half the way the worker
+does, and checks the reused cache against a fresh one. CI fails if any logit
+differs by more than 1e-4:
 
 ```
 $ node scripts/check_web.mjs
-390 logits for "ROMEO:": max |js - numpy| = 9.54e-6 (limit 0.0001) ok
+8320 logits over 128 positions: max |js - numpy| = 2.00e-5 (limit 0.0001) ok
+restart from the last 64 tokens: ok
 ```
 
 To run the site locally (ES modules need a server, not `file://`):
