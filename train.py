@@ -20,13 +20,13 @@ from pocketgpt.tensor import cross_entropy, no_grad
 class TrainConfig:
     data_dir: str = "data/shakespeare"
     out_dir: str = "out/shakespeare"
-    n_layer: int = 4
+    n_layer: int = 6
     n_head: int = 4
     n_embd: int = 128
     block_size: int = 128
     dropout: float = 0.0
     batch_size: int = 32
-    max_steps: int = 6000
+    max_steps: int = 5000
     lr: float = 2e-3
     min_lr: float = 2e-4
     warmup_steps: int = 200
