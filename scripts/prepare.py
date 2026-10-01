@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import urllib.request
 from pathlib import Path
 
@@ -26,10 +27,14 @@ def main():
     source = out / "input.txt"
     if not source.exists():
         print(f"downloading {URL}")
-        urllib.request.urlretrieve(URL, source)
+        # a cut-off download must not look finished to the next run
+        partial = source.with_name("input.txt.part")
+        urllib.request.urlretrieve(URL, partial)
+        os.replace(partial, source)
     text = source.read_text(encoding="utf-8")
 
     tokenizer = CharTokenizer.from_text(text)
+    # uint16 like nanoGPT's .bin files, so a BPE vocab would fit the same format
     ids = tokenizer.encode(text).astype(np.uint16)
     split = int(len(ids) * (1 - args.val_fraction))
     ids[:split].tofile(out / "train.bin")
