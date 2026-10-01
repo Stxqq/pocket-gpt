@@ -21,6 +21,14 @@ A GPT trained from scratch in pure NumPy, on an autograd engine of about 360 lin
       <img src=".github/assets/launch-light.png" alt="Open the live demo" width="300">
     </picture>
   </a>
+  <a href="https://github.com/Stxqq/pocket-gpt">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/star-dark.png">
+      <img src=".github/assets/star-light.png" alt="Star on GitHub" width="260">
+    </picture>
+  </a>
+  <br />
+  <sub>If you found it useful, a star helps more people find it.</sub>
 </p>
 
 ## What it is
