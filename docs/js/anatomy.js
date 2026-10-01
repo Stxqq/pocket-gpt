@@ -27,6 +27,7 @@ export function initAnatomy({ config, vocab }) {
   const c = config.n_embd;
   const v = vocab.length;
   text("dim-width", c);
+  text("dim-depth", config.n_layer);
   text("stack-repeat", `× ${config.n_layer}`);
   text("stack-heads", `${config.n_head} heads · causal`);
   text("attention-note", `${config.n_head} causal heads of ${c / config.n_head}`);
