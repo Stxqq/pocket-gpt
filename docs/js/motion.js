@@ -16,7 +16,7 @@ export function frames(tick) {
   requestAnimationFrame(frame);
 }
 
-/** The damped spring the portfolio uses where things open and close. */
+/** Damped spring with a slight overshoot, for the probability bars; constants picked by eye. */
 export class Spring {
   constructor(value = 0, { stiffness = 420, damping = 26, mass = 0.85 } = {}) {
     this.value = value;
@@ -40,7 +40,7 @@ export class Spring {
   }
 }
 
-/** Per-frame lerp toward a target, for counters and follow motion. */
+/** One step of exponential easing; snaps to the target once within 1e-4 of it. */
 export function follow(current, target, rate = 0.085) {
   if (prefersReducedMotion()) return target;
   const next = current + (target - current) * rate;

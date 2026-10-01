@@ -217,7 +217,7 @@ export function sample(logits, temperature, topK, random = Math.random) {
     r -= probs[i];
     if (r <= 0) return i;
   }
-  return argmax(probs);
+  return argmax(probs); // rounding can leave r a hair above 0 after the last bucket
 }
 
 function argmax(xs) {
