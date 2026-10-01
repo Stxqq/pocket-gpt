@@ -196,6 +196,9 @@ docs/
   index.html, style.css   the demo page
   js/gpt.js       the forward pass in JavaScript, with a kv cache
   js/worker.js    loads the weights, samples, records attention
+  js/engine.js    the page's side of the worker
+  js/generate.js, inside.js, modelcard.js, anatomy.js   one per view
+  js/views.js, motion.js   pill nav, springs and lerps
   model/          the trained model and its loss log
 ```
 
