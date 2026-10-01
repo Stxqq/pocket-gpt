@@ -134,6 +134,39 @@ back to back as little-endian float32), `model.json` (config, vocab, shape
 and byte offset of each tensor) and `fixture.json` (logits for the prompt
 `ROMEO:`, so the JavaScript port can prove it computes the same function).
 
+## In the browser
+
+The [live demo](https://stxqq.github.io/pocket-gpt/) runs the same weights
+with no server behind it. `docs/js/gpt.js` is a second implementation of the
+forward pass in plain JavaScript: Float32Array matmuls, layer norm, GELU and
+attention, one token at a time with a key/value cache. It lives in a Web
+Worker, so sampling never blocks the page.
+
+Positions are absolute, so once the 128-character window is full the cache
+can't slide. Instead of recomputing all 128 positions for every new
+character, it restarts from the last 64, which costs about two forward steps
+per character.
+
+The page has three views: *Generate* streams text with temperature and top-k
+sliders, *Inside* draws the attention weights of any layer and head over the
+last 64 characters together with the model's top 10 guesses at each spot,
+and *Model* shows the numbers and loss curve from the training log.
+
+`scripts/check_web.mjs` runs the JavaScript engine under Node and compares
+its logits with `fixture.json`, which the numpy model wrote at export time.
+CI fails if any of them differ by more than 1e-4:
+
+```
+$ node scripts/check_web.mjs
+390 logits for "ROMEO:": max |js - numpy| = 9.54e-6 (limit 0.0001) ok
+```
+
+To run the site locally (ES modules need a server, not `file://`):
+
+```bash
+python -m http.server 8000 -d docs
+```
+
 ## Project layout
 
 ```
@@ -148,7 +181,12 @@ pocketgpt/
 scripts/prepare.py
 train.py  sample.py  export.py
 tests/            gradient checks, masking, overfitting, optimizer, export
-docs/model/       the trained model and its loss log
+scripts/check_web.mjs   JS engine vs numpy logits
+docs/
+  index.html, style.css   the demo page
+  js/gpt.js       the forward pass in JavaScript, with a kv cache
+  js/worker.js    loads the weights, samples, records attention
+  model/          the trained model and its loss log
 ```
 
 ## Results
@@ -182,6 +220,11 @@ numpy 2.5 with Apple Accelerate, from a short benchmark before the long run
 The one optimization that mattered: GELU originally used `x**3`, and float32
 `power` in numpy is about 35x slower than `x * x * x`. Swapping it took the
 4-layer step from 132 ms to 102 ms.
+
+In the browser, Chrome samples about 675 characters/s (five 800-character
+runs, 658 to 697) on the same laptop while it was busy with other work. In the
+JavaScript matmul, handling four input rows per pass over the output was the
+change that mattered: 446 to about 780 characters/s under Node.
 
 The test suite (64 tests, gradient checks for every op and for a whole
 2-layer GPT in float64) runs in under half a second.
