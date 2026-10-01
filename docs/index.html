@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>pocket-gpt — a small GPT in your browser</title>
+  <meta name="description" content="A 1.2M-parameter GPT trained from scratch in NumPy, running entirely in the browser. Generate Shakespeare, look inside the attention heads, read the model card.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://stxqq.github.io/pocket-gpt/">
+  <meta property="og:title" content="pocket-gpt — a small GPT in your browser">
+  <meta property="og:description" content="1.2M parameters trained from scratch in NumPy. Every character is sampled on your machine.">
+  <meta property="og:image" content="https://stxqq.github.io/pocket-gpt/social.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23fff'/%3E%3Cg fill='%23111113'%3E%3Crect x='7' y='7' width='5' height='5' rx='1'/%3E%3Crect x='7' y='13.5' width='5' height='5' rx='1' opacity='.55'/%3E%3Crect x='13.5' y='13.5' width='5' height='5' rx='1'/%3E%3Crect x='7' y='20' width='5' height='5' rx='1' opacity='.3'/%3E%3Crect x='13.5' y='20' width='5' height='5' rx='1' opacity='.55'/%3E%3Crect x='20' y='20' width='5' height='5' rx='1'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://rsms.me/">
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="modulepreload" href="js/gpt.js">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <nav class="pill" id="pill" aria-label="Sections">
+    <span class="pill-ind" aria-hidden="true"></span>
+    <a class="pill-btn" href="#generate" data-view="generate">Generate</a>
+    <a class="pill-btn" href="#inside" data-view="inside">Inside</a>
+    <a class="pill-btn" href="#model" data-view="model">Model</a>
+  </nav>
+
+  <main id="views">
+    <section class="view" id="view-generate" data-view="generate" aria-label="Generate">
+      <header class="intro">
+        <p class="lead">A small GPT, running here.</p>
+        <p class="gray">
+          1.2 million parameters, trained from scratch on Shakespeare with
+          nothing but NumPy. The weights load into a worker on this page and
+          every character is sampled on your machine.
+        </p>
+      </header>
+
+      <div class="feed">
+        <div class="tile tile-tall stage-generate">
+          <div class="card writer">
+            <div class="load-bar" id="load-bar" aria-hidden="true"><i></i></div>
+            <form class="writer-head" id="writer-form">
+              <input id="prompt" class="prompt" value="ROMEO:" maxlength="200" spellcheck="false" autocomplete="off" aria-label="Prompt">
+              <button class="run" id="run" type="submit" aria-label="Generate" disabled>
+                <svg class="icon-play" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.6v8.8a.6.6 0 0 0 .9.5l7-4.4a.6.6 0 0 0 0-1L3.9 1.1a.6.6 0 0 0-.9.5Z" fill="currentColor"/></svg>
+                <svg class="icon-stop" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2" fill="currentColor"/></svg>
+              </button>
+            </form>
+            <div class="writer-body" id="output"><p class="writer-hint" id="hint">Loading 4.9 MB of weights…</p></div>
+          </div>
+
+          <div class="controls">
+            <label class="slider">
+              <span class="slider-head"><b>Temperature</b><em id="temperature-value">0.80</em></span>
+              <input type="range" id="temperature" min="0.1" max="1.5" step="0.05" value="0.8">
+            </label>
+            <label class="slider">
+              <span class="slider-head"><b>Top-k</b><em id="top-k-value">40</em></span>
+              <input type="range" id="top-k" min="1" max="65" step="1" value="40">
+            </label>
+            <p class="rate"><b id="rate">0</b><u>chars/s</u></p>
+          </div>
+        </div>
+        <div class="caption">
+          <h2>Generate</h2>
+          <p>Character by character · 6 layers · context of 128</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-inside" data-view="inside" aria-label="Inside" hidden>
+      <header class="intro">
+        <p class="lead">Inside the model.</p>
+        <p class="gray">
+          Pick a layer and a head to see where each character looks. Point at
+          a row of the map, or a character below it, to see what the model
+          expected next at that spot.
+        </p>
+      </header>
+
+      <div class="feed">
+        <div class="tile tile-tall stage-attention">
+          <label class="card probe">
+            <span class="spec-label">Text</span>
+            <textarea id="probe" rows="2" spellcheck="false" aria-label="Text to inspect">JULIET:
+O Romeo, Romeo! wherefore art thou Romeo?</textarea>
+          </label>
+
+          <div class="pickers">
+            <div class="picker" role="radiogroup" aria-label="Layer">
+              <span class="spec-label">Layer</span>
+              <div class="chips" id="layers"></div>
+            </div>
+            <div class="picker" role="radiogroup" aria-label="Head">
+              <span class="spec-label">Head</span>
+              <div class="chips" id="heads"></div>
+            </div>
+          </div>
+
+          <div class="heat-frame">
+            <div class="kl-dim kl-dim-top" aria-hidden="true"><i></i><b id="heat-size">64</b><i></i></div>
+            <div class="card heat"><canvas id="heatmap" aria-label="Attention map"></canvas></div>
+          </div>
+          <div class="strip" id="strip" tabindex="0" aria-label="Characters; use the arrow keys to move the selection"></div>
+        </div>
+        <div class="caption">
+          <h2>Attention</h2>
+          <p id="attention-caption">Layer 1 · head 1 · ink is the square root of the weight</p>
+        </div>
+
+        <div class="tile stage-next">
+          <div class="card next">
+            <p class="next-context" id="next-context"></p>
+            <ol class="bars" id="bars"></ol>
+          </div>
+        </div>
+        <div class="caption">
+          <h2>Next character</h2>
+          <p>The ten most likely continuations at the selected spot</p>
+        </div>
+
+        <div class="tile tile-tall anatomy" id="anatomy" tabindex="0" aria-label="Anatomy of a transformer block">
+          <div class="anno-frame" id="anno-frame">
+            <div class="kl" aria-hidden="true">
+              <div class="kl-grid"></div>
+              <div class="kl-box"></div>
+              <div class="kl-corner"><span>R16</span></div>
+              <div class="kl-dim kl-dim-top"><i></i><b id="dim-width">128</b><i></i></div>
+            </div>
+            <div class="stack" id="stack">
+              <div class="stack-row" data-callout="embedding"><b>Token + position</b><span>wte[id] + wpe[t]</span></div>
+              <div class="stack-group">
+                <span class="stack-repeat" id="stack-repeat">× 6</span>
+                <div class="stack-row stack-minor">LayerNorm</div>
+                <div class="stack-row" data-callout="attention"><b>Attention</b><span id="stack-heads">4 heads · causal</span></div>
+                <div class="stack-row stack-minor">LayerNorm</div>
+                <div class="stack-row" data-callout="mlp"><b>MLP</b><span>GELU</span></div>
+              </div>
+              <div class="stack-row stack-minor">LayerNorm</div>
+              <div class="stack-row" data-callout="head"><b>Logits</b><span>x · wteᵀ</span></div>
+            </div>
+            <div class="anno-item ai-left" data-for="embedding">
+              <span class="anno-label"><em>01</em><b>Embedding</b><span>Token and position tables, summed</span><code id="dims-embedding"></code></span>
+              <span class="anno-line"></span><span class="anno-dot"></span>
+            </div>
+            <div class="anno-item ai-right" data-for="attention">
+              <span class="anno-dot"></span><span class="anno-line"></span>
+              <span class="anno-label"><em>02</em><b>Attention</b><span id="attention-note">Four causal heads of 32</span><code id="dims-attention"></code></span>
+            </div>
+            <div class="anno-item ai-left" data-for="mlp">
+              <span class="anno-label"><em>03</em><b>MLP</b><span>Four times wider and back</span><code id="dims-mlp"></code></span>
+              <span class="anno-line"></span><span class="anno-dot"></span>
+            </div>
+            <div class="anno-item ai-right" data-for="head">
+              <span class="anno-dot"></span><span class="anno-line"></span>
+              <span class="anno-label"><em>04</em><b>LM head</b><span>Reuses the token table</span><code id="dims-head"></code></span>
+            </div>
+          </div>
+          <span class="anno-hint">Anatomy</span>
+        </div>
+        <div class="caption">
+          <h2>One block, six times</h2>
+          <p>Pre-norm GPT-2 layout · dimensions from model.json</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-model" data-view="model" aria-label="Model" hidden>
+      <header class="intro">
+        <p class="lead">The model.</p>
+        <p class="gray">
+          Trained for 5,000 steps on a laptop CPU. The weights on this page are
+          the checkpoint with the lowest validation loss, from step 3,750,
+          before the model started to memorise.
+        </p>
+      </header>
+
+      <div class="feed">
+        <div class="tile stage-card">
+          <div class="card model-card">
+            <div class="model-card-head">
+              <b>pocket-gpt</b><span>shakespeare-char</span>
+            </div>
+            <dl class="figures" id="figures"></dl>
+          </div>
+        </div>
+        <div class="caption">
+          <h2>Model card</h2>
+          <p>Character-level · vocabulary of 65</p>
+        </div>
+
+        <div class="tile stage-loss">
+          <div class="card loss-card">
+            <div class="legend">
+              <span><i class="swatch swatch-train"></i>Train</span>
+              <span><i class="swatch swatch-val"></i>Validation</span>
+              <output class="readout" id="loss-readout"></output>
+            </div>
+            <svg class="loss-chart" id="loss-chart" viewBox="0 0 440 250" role="img" aria-label="Training and validation loss over 5,000 steps"></svg>
+          </div>
+        </div>
+        <div class="caption">
+          <h2>Loss</h2>
+          <p>Cross-entropy in nats · validation on the same 20 batches each time</p>
+        </div>
+
+        <dl class="facts" id="facts"></dl>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div><h3>Source</h3><a href="https://github.com/Stxqq/pocket-gpt">github.com/Stxqq/pocket-gpt</a></div>
+    <div><h3>Credits</h3><a href="https://www.youtube.com/watch?v=kCc8FmEb1nY">Andrej Karpathy, Let's build GPT</a></div>
+    <div><h3>License</h3><p>MIT</p></div>
+    <div><h3>Built by</h3><p>Stefan Carapic</p></div>
+  </footer>
+</body>
+</html>
