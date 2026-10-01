@@ -145,7 +145,10 @@ export function initGenerate() {
       start();
     },
     () => {
-      hint.textContent = "The weights did not load. Reload the page to try again.";
+      loadBar.classList.add("done");
+      run.classList.add("failed");
+      const retry = Object.assign(document.createElement("a"), { href: "", className: "retry", textContent: "Reload" });
+      hint.replaceChildren("The weights did not load. ", retry);
     },
   );
 }

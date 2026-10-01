@@ -1,24 +1,35 @@
 import { Context, GPT, sample, softmax } from "./gpt.js";
 
 const MODEL_DIR = new URL("../model/", import.meta.url);
+// yield every ~12 ms so a stop message gets through and text arrives about once a frame
 const SLICE_MS = 12;
 const TOP = 10;
 
 let gpt;
 let running = 0;
 
+async function fetchOk(name) {
+  const response = await fetch(new URL(name, MODEL_DIR));
+  if (!response.ok) throw new Error(`${name}: HTTP ${response.status}`);
+  return response;
+}
+
 async function load() {
-  const manifest = await (await fetch(new URL("model.json", MODEL_DIR))).json();
-  const response = await fetch(new URL("weights.bin", MODEL_DIR));
+  const manifest = await (await fetchOk("model.json")).json();
+  // keyed on the export, so a cached weights.bin never pairs with a newer model.json
+  const response = await fetchOk(`weights.bin?v=${manifest.step}-${manifest.bytes}`);
   const bytes = new Uint8Array(manifest.bytes);
   const reader = response.body.getReader();
   let received = 0;
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
-    bytes.set(value, received);
+    if (received + value.length <= bytes.length) bytes.set(value, received);
     received += value.length;
-    postMessage({ type: "progress", fraction: received / manifest.bytes });
+    postMessage({ type: "progress", fraction: Math.min(received / manifest.bytes, 1) });
+  }
+  if (received !== manifest.bytes) {
+    throw new Error(`weights.bin: got ${received} of ${manifest.bytes} bytes`);
   }
   gpt = new GPT(manifest, bytes.buffer);
   postMessage({ type: "ready" });
