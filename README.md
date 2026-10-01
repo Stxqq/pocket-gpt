@@ -14,6 +14,15 @@ A GPT trained from scratch in pure NumPy, on an autograd engine of about 360 lin
   <img src="https://img.shields.io/badge/dependencies-numpy%20only-111113?style=flat&labelColor=111113" alt="Dependencies: numpy only">
 </p>
 
+<p align="center">
+  <a href="https://stxqq.github.io/pocket-gpt/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/launch-dark.png">
+      <img src=".github/assets/launch-light.png" alt="Open the live demo" width="300">
+    </picture>
+  </a>
+</p>
+
 ## What it is
 
 No PyTorch, no JAX. `pocketgpt/tensor.py` is a reverse-mode autograd engine
