@@ -14,7 +14,9 @@ from pathlib import Path
 
 import numpy as np
 
+from .nn import GPT, GPTConfig
 from .tensor import no_grad
+from .tokenizer import CharTokenizer
 
 FORMAT = "pocket-gpt/1"
 
@@ -70,3 +72,11 @@ def read_web(out_dir):
         flat = np.frombuffer(blob, dtype="<f4", count=count, offset=t["offset"])
         state[t["name"]] = flat.reshape(t["shape"])
     return state, manifest
+
+
+def load_web(out_dir):
+    """Return (model, tokenizer, manifest) for a directory written by export_web."""
+    state, manifest = read_web(out_dir)
+    model = GPT(GPTConfig(**manifest["config"]))
+    model.load_state_dict(state)
+    return model.eval(), CharTokenizer(manifest["vocab"]), manifest

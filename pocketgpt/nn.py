@@ -201,6 +201,8 @@ class GPT(Module):
         """Yield sampled token ids one at a time, continuing from `ids`."""
         rng = rng or np.random.default_rng()
         context = list(ids)
+        if not context:
+            raise ValueError("generate needs at least one token to start from")
         was_training = self.training
         self.eval()
         try:

@@ -3,7 +3,7 @@ import json
 import numpy as np
 
 from pocketgpt.checkpoint import load_checkpoint, save_checkpoint
-from pocketgpt.export import export_web, read_web
+from pocketgpt.export import export_web, load_web, read_web
 from pocketgpt.nn import GPT, GPTConfig
 from pocketgpt.tokenizer import CharTokenizer
 
@@ -24,14 +24,15 @@ def test_web_export_round_trip(tmp_path):
     assert loaded["bytes"] == 4 * model.num_params()
     assert list(state) == [name for name, _ in model.named_parameters()]
 
-    clone = GPT(GPTConfig(**loaded["config"]), seed=99)
-    clone.load_state_dict(state)
+    clone, tokenizer, _ = load_web(tmp_path)
+    assert tokenizer.chars == TOKENIZER.chars
+    assert not clone.training
     for name, p in model.named_parameters():
         np.testing.assert_array_equal(dict(clone.named_parameters())[name].data, p.data)
 
     fixture = json.loads((tmp_path / "fixture.json").read_text())
     assert TOKENIZER.decode(fixture["tokens"]) == "ROMEO:"
-    expected = clone.eval()(np.array([fixture["tokens"]])).data[0]
+    expected = clone(np.array([fixture["tokens"]])).data[0]
     np.testing.assert_allclose(fixture["logits"], expected, rtol=1e-6)
 
 

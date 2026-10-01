@@ -68,13 +68,17 @@ git clone https://github.com/Stxqq/pocket-gpt && cd pocket-gpt
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
-python scripts/prepare.py         # downloads tiny shakespeare into data/
-python train.py                   # ~15 min on a 14-core M-series CPU
 python sample.py --prompt "ROMEO:" --top-k 40
 ```
 
-A pretrained model already lives in `docs/model/`, the same files the
-browser demo loads.
+That samples from the trained model in `docs/model/`, the same files the
+browser demo loads. To train your own:
+
+```bash
+python scripts/prepare.py         # downloads tiny shakespeare into data/
+python train.py                   # ~15 min on a 14-core M-series CPU
+python sample.py --prompt "ROMEO:" --top-k 40   # now uses out/shakespeare/ckpt.npz
+```
 
 ## Usage
 
@@ -96,8 +100,8 @@ best val 1.5367, 23,724 tok/s
 Every field of the config dataclass is a flag, e.g.
 `python train.py --n-layer 4 --max-steps 2000 --dropout 0.1`.
 
-Sampling from the exported checkpoint
-(`python sample.py --prompt "ROMEO:" --tokens 400 --temperature 0.8 --top-k 40 --seed 7`):
+Sampling from the published model
+(`python sample.py --model docs/model --prompt "ROMEO:" --tokens 400 --temperature 0.8 --top-k 40 --seed 7`):
 
 ```
 ROMEO:

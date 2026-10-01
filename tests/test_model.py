@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from numerical import numerical_grad
 
 from pocketgpt.nn import GPT, GPTConfig, sample_token
@@ -90,6 +91,8 @@ def test_generate_respects_block_size_and_restores_mode():
     assert len(tokens) == 20
     assert all(0 <= t < TINY.vocab_size for t in tokens)
     assert model.training
+    with pytest.raises(ValueError):
+        next(model.generate([], 1))
 
 
 def test_top_k_and_greedy_sampling():
