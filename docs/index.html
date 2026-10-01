@@ -142,19 +142,19 @@ O Romeo, Romeo! wherefore art thou Romeo?</textarea>
               <div class="stack-row stack-minor">LayerNorm</div>
               <div class="stack-row" data-callout="head"><b>Logits</b><span>x · wteᵀ</span></div>
             </div>
-            <div class="anno-item ai-left" data-for="embedding">
+            <div class="anno-item anno-left" data-for="embedding">
               <span class="anno-label"><em>01</em><b>Embedding</b><span>Token and position tables, summed</span><code id="dims-embedding"></code></span>
               <span class="anno-line"></span><span class="anno-dot"></span>
             </div>
-            <div class="anno-item ai-right" data-for="attention">
+            <div class="anno-item anno-right" data-for="attention">
               <span class="anno-dot"></span><span class="anno-line"></span>
               <span class="anno-label"><em>02</em><b>Attention</b><span id="attention-note">Four causal heads of 32</span><code id="dims-attention"></code></span>
             </div>
-            <div class="anno-item ai-left" data-for="mlp">
+            <div class="anno-item anno-left" data-for="mlp">
               <span class="anno-label"><em>03</em><b>MLP</b><span>Four times wider and back</span><code id="dims-mlp"></code></span>
               <span class="anno-line"></span><span class="anno-dot"></span>
             </div>
-            <div class="anno-item ai-right" data-for="head">
+            <div class="anno-item anno-right" data-for="head">
               <span class="anno-dot"></span><span class="anno-line"></span>
               <span class="anno-label"><em>04</em><b>LM head</b><span>Reuses the token table</span><code id="dims-head"></code></span>
             </div>

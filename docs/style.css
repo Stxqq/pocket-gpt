@@ -332,8 +332,8 @@ input[type="range"]:focus-visible { outline-offset: 4px; border-radius: 4px; }
 .heat-frame .kl-dim-top { top: -18px; }
 
 .anno-item { position: absolute; display: flex; align-items: center; pointer-events: none; translate: 0 -50%; }
-.ai-left { right: 100%; }
-.ai-right { left: 100%; }
+.anno-left { right: 100%; }
+.anno-right { left: 100%; }
 .anno-label {
   display: grid; grid-template-columns: auto 1fr; column-gap: 6px; row-gap: 1px;
   width: 138px; align-items: baseline;
@@ -355,17 +355,17 @@ input[type="range"]:focus-visible { outline-offset: 4px; border-radius: 4px; }
   font-family: var(--mono); font-size: 8.5px; letter-spacing: .02em; color: rgba(17, 17, 19, .5);
 }
 .anno-label code i { font-style: normal; white-space: nowrap; }
-.ai-left .anno-label { grid-template-columns: 1fr auto; text-align: right; }
-.ai-left .anno-label em { grid-column: 2; }
-.ai-left .anno-label b, .ai-left .anno-label span, .ai-left .anno-label code { grid-column: 1; }
+.anno-left .anno-label { grid-template-columns: 1fr auto; text-align: right; }
+.anno-left .anno-label em { grid-column: 2; }
+.anno-left .anno-label b, .anno-left .anno-label span, .anno-left .anno-label code { grid-column: 1; }
 .anno-line {
   display: block; flex: none; width: 18px; height: 1px; margin: 0 6px;
   background: #cfcfd6;
   transform: scaleX(0);
   transition: transform .45s var(--ease);
 }
-.ai-left .anno-line { transform-origin: right center; }
-.ai-right .anno-line { transform-origin: left center; }
+.anno-left .anno-line { transform-origin: right center; }
+.anno-right .anno-line { transform-origin: left center; }
 .anno-dot {
   display: block; flex: none; width: 5px; height: 5px; margin: 0 -2.5px;
   border-radius: 999px; background: var(--ink);
