@@ -256,7 +256,8 @@ class Tensor:
         """GELU with the tanh approximation used by GPT-2."""
         x = self.data
         c = math.sqrt(2 / math.pi)
-        t = np.tanh(c * (x + 0.044715 * x**3))
+        # x * x * x rather than x**3: float32 power is ~30x slower in numpy
+        t = np.tanh(c * (x + 0.044715 * x * x * x))
 
         def backward(g):
             dt = c * (1 + 3 * 0.044715 * x * x) * (1 - t * t)
