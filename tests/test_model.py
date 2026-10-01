@@ -64,7 +64,9 @@ def test_output_head_is_tied_to_token_embedding():
 
 def test_parameter_count():
     c, v, b, n = TINY.n_embd, TINY.vocab_size, TINY.block_size, TINY.n_layer
-    per_block = 2 * 2 * c + (3 * c * c + 3 * c) + (c * c + c) + 8 * c * c + 5 * c
+    ln, qkv, proj = 2 * 2 * c, 3 * c * c + 3 * c, c * c + c
+    up, down = 4 * c * c + 4 * c, 4 * c * c + c
+    per_block = ln + qkv + proj + up + down
     expected = v * c + b * c + n * per_block + 2 * c
     assert GPT(TINY).num_params() == expected
 

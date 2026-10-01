@@ -85,6 +85,7 @@ class Module:
 
 class Linear(Module):
     def __init__(self, n_in, n_out, rng, bias=True, std=0.02):
+        # (in, out) so forward is x @ W; export.py and docs/js/gpt.js rely on it
         self.weight = Parameter(rng.normal(0, std, (n_in, n_out)), decay=True)
         self.bias = Parameter(np.zeros(n_out)) if bias else None
 

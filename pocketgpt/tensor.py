@@ -141,8 +141,6 @@ class Tensor:
                 key = id(parent)
                 pending[key] = pg if key not in pending else pending[key] + pg
 
-    # elementwise arithmetic
-
     def __add__(self, other):
         other = self._lift(other)
 
@@ -217,8 +215,6 @@ class Tensor:
 
         return _node(a @ b, (self, other), backward)
 
-    # reductions
-
     def sum(self, axis=None, keepdims=False):
         shape = self.shape
 
@@ -233,8 +229,6 @@ class Tensor:
         axes = range(self.ndim) if axis is None else np.atleast_1d(axis)
         count = math.prod(self.shape[a] for a in axes)
         return self.sum(axis=axis, keepdims=keepdims) / count
-
-    # pointwise functions
 
     def exp(self):
         out = np.exp(self.data)
@@ -264,8 +258,6 @@ class Tensor:
             return (g * (0.5 * (1 + t) + 0.5 * x * dt),)
 
         return _node(0.5 * x * (1 + t), (self,), backward)
-
-    # shape
 
     def reshape(self, *shape):
         if len(shape) == 1 and isinstance(shape[0], tuple):
@@ -303,7 +295,7 @@ class Tensor:
         return _node(self.data[index], (self,), backward)
 
     def masked_fill(self, mask, value):
-        """Replace entries where `mask` is true with a constant."""
+        """Masked entries become `value` and pass no gradient back."""
         out = np.where(mask, np.asarray(value, dtype=self.dtype), self.data)
         return _node(out, (self,), lambda g: (np.where(mask, 0, g),))
 
@@ -347,7 +339,7 @@ def cross_entropy(logits, targets):
 
 
 def layer_norm(x, weight, bias, eps=1e-5):
-    """Normalize over the last axis, then scale and shift."""
+    """Layer norm as one node with the closed-form backward, not a dozen small ones."""
     mu = x.data.mean(axis=-1, keepdims=True)
     centered = x.data - mu
     rstd = 1 / np.sqrt((centered * centered).mean(axis=-1, keepdims=True) + eps)

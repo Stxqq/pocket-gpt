@@ -14,6 +14,8 @@ class AdamW:
     weights. Biases, LayerNorm gains and embeddings are left alone.
     """
 
+    # beta2 0.99 as in nanoGPT's shakespeare_char config, not the usual 0.999:
+    # each step sees few tokens, so the second moment should forget faster
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.99), eps=1e-8, weight_decay=0.1):
         self.params = list(params)
         self.lr = lr
@@ -58,8 +60,9 @@ def cosine_lr(step, *, max_lr, min_lr, warmup, total):
 
 
 def clip_grad_norm(params, max_norm):
-    """Rescale gradients so their global L2 norm is at most max_norm."""
+    """Scale grads to a global L2 norm of at most max_norm; returns the norm before."""
     grads = [p.grad for p in params if p.grad is not None]
+    # float64: summing ~1.2M float32 squares loses digits
     norm = math.sqrt(sum(float((g.astype(np.float64) ** 2).sum()) for g in grads))
     if norm > max_norm:
         scale = max_norm / (norm + 1e-6)

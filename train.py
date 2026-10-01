@@ -94,6 +94,7 @@ def main():
     best_val = float("inf")
     train_seconds = 0.0
 
+    # one extra pass so the weights after the last update get evaluated too
     for step in range(cfg.max_steps + 1):
         if step % cfg.eval_every == 0 or step == cfg.max_steps:
             losses = estimate_loss(
