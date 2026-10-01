@@ -14,7 +14,8 @@ class Parameter(Tensor):
     """A trainable leaf. `decay` marks weights that AdamW should shrink."""
 
     def __init__(self, data, decay=False, dtype=np.float32):
-        super().__init__(data, requires_grad=True, dtype=dtype)
+        # copy: the optimizer updates parameters in place
+        super().__init__(np.array(data, dtype=dtype), requires_grad=True)
         self.decay = decay
 
 
