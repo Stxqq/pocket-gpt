@@ -4,6 +4,7 @@ const SVG = "http://www.w3.org/2000/svg";
 const W = 440;
 const H = 250;
 const PAD = { left: 30, right: 14, top: 14, bottom: 26 };
+// ln(65) = 4.17 is where an untrained model starts; 4.4 leaves room above it
 const LOSS_RANGE = [1, 4.4];
 
 const figuresEl = document.getElementById("figures");
@@ -21,32 +22,44 @@ function node(tag, attrs, parent) {
   return el;
 }
 
+// Sizes count up; small counts and the loss just fade in, since ticking
+// from 0 to 6 layers reads as a glitch rather than as motion.
 function buildFigures(manifest) {
   const { config } = manifest;
   const figures = [
-    ["Parameters", manifest.params / 1e6, 2, "M"],
-    ["Layers", config.n_layer, 0, ""],
-    ["Heads", config.n_head, 0, ""],
-    ["Context", config.block_size, 0, "chars"],
-    ["Val loss", manifest.val, 3, ""],
-    ["Weights", manifest.bytes / 1e6, 2, "MB"],
+    ["Parameters", manifest.params / 1e6, 2, "M", true],
+    ["Layers", config.n_layer, 0, "", false],
+    ["Heads", config.n_head, 0, "", false],
+    ["Context", config.block_size, 0, "chars", true],
+    ["Val loss", manifest.val, 3, "", false],
+    ["Weights", manifest.bytes / 1e6, 2, "MB", true],
   ];
-  const counters = figures.map(([label, value, digits, unit]) => {
+  const items = figures.map(([label, value, digits, unit, counts]) => {
     const wrap = document.createElement("div");
     wrap.className = "figure";
     wrap.innerHTML = `<dt>${label}</dt><dd><b>${number(value, digits)}</b>${unit ? `<u>${unit}</u>` : ""}</dd>`;
     figuresEl.append(wrap);
-    return { el: wrap.querySelector("b"), value, digits, shown: value };
+    return { wrap, el: wrap.querySelector("b"), value, digits, final: number(value, digits), counts };
   });
+  const counters = items.filter((item) => item.counts);
 
   return function countUp() {
+    items.forEach((item, i) => {
+      item.wrap.classList.remove("rise");
+      item.wrap.style.animationDelay = `${i * 50}ms`;
+    });
+    figuresEl.getBoundingClientRect(); // restart the fade on every visit
+    for (const item of items) item.wrap.classList.add("rise");
     for (const c of counters) c.shown = 0;
     frames(() => {
       let moving = false;
       for (const c of counters) {
         c.shown = follow(c.shown, c.value);
-        if (c.shown !== c.value) moving = true;
-        c.el.textContent = number(c.shown, c.digits);
+        const text = number(c.shown, c.digits);
+        // stop once the digits match instead of easing through the last 1e-4
+        if (text === c.final) c.shown = c.value;
+        else moving = true;
+        c.el.textContent = text;
       }
       return moving;
     });
@@ -64,7 +77,8 @@ function buildChart(log) {
 
   for (const loss of [1, 2, 3, 4]) {
     node("line", { class: "grid", x1: PAD.left, x2: W - PAD.right, y1: y(loss), y2: y(loss) }, chart);
-    node("text", { class: "tick", x: PAD.left - 8, y: y(loss) + 3, "text-anchor": "end" }, chart).textContent = loss.toFixed(1);
+    const label = node("text", { class: "tick", x: PAD.left - 8, y: y(loss), dy: "0.35em", "text-anchor": "end" }, chart);
+    label.textContent = loss.toFixed(1);
   }
   for (let step = 0; step <= steps; step += 1000) {
     const label = node("text", { class: "tick", x: x(step), y: H - 6, "text-anchor": "middle" }, chart);
@@ -84,9 +98,45 @@ function buildChart(log) {
   const bestLabel = node("text", { class: "best-label", x: x(best.step), y: y(best.val) - 13, "text-anchor": "middle" }, lines);
   bestLabel.textContent = `best ${best.val.toFixed(3)}`;
 
-  const cursor = node("line", { class: "cursor", y1: PAD.top, y2: H - PAD.bottom }, chart);
-  const cursorDot = node("circle", { class: "cursor-dot", r: 3 }, chart);
+  // The cursor snaps to eval points but glides between them.
+  const cursor = node("g", { class: "cursor-g" }, chart);
+  node("line", { class: "cursor", y1: PAD.top, y2: H - PAD.bottom }, cursor);
+  const cursorDot = node("circle", { class: "cursor-dot", r: 3 }, cursor);
+  let cx = x(best.step);
+  let cy = y(best.val);
+  let tx = cx;
+  let ty = cy;
+  let gliding = false;
+  const place = () => {
+    cursor.setAttribute("transform", `translate(${cx.toFixed(2)} 0)`);
+    cursorDot.setAttribute("cy", cy.toFixed(2));
+  };
+  const glide = () => {
+    if (gliding) return;
+    gliding = true;
+    frames(() => {
+      cx = follow(cx, tx, 0.22);
+      cy = follow(cy, ty, 0.22);
+      place();
+      gliding = cx !== tx || cy !== ty;
+      return gliding;
+    });
+  };
+  place();
+
   const resting = `best val ${best.val.toFixed(3)} · step ${number(best.step)}`;
+  let readStep = null;
+  let swap = 0;
+  const read = (text, step) => {
+    if (step === readStep) return;
+    readStep = step;
+    readout.classList.add("swap");
+    clearTimeout(swap);
+    swap = setTimeout(() => {
+      readout.textContent = text;
+      readout.classList.remove("swap");
+    }, 90);
+  };
   readout.textContent = resting;
 
   chart.addEventListener("pointermove", (event) => {
@@ -94,17 +144,28 @@ function buildChart(log) {
     const px = ((event.clientX - box.left) / box.width) * W;
     const step = ((px - PAD.left) / (W - PAD.left - PAD.right)) * steps;
     const p = log.eval.reduce((a, b) => (Math.abs(b.step - step) < Math.abs(a.step - step) ? b : a));
-    cursor.setAttribute("x1", x(p.step));
-    cursor.setAttribute("x2", x(p.step));
-    cursorDot.setAttribute("cx", x(p.step));
-    cursorDot.setAttribute("cy", y(p.val));
-    chart.classList.add("hover");
-    readout.textContent = `step ${number(p.step)} · train ${p.train.toFixed(3)} · val ${p.val.toFixed(3)}`;
+    if (!chart.classList.contains("hover")) {
+      // appear where the pointer is, then glide from there
+      cx = tx = x(p.step);
+      cy = ty = y(p.val);
+      place();
+      chart.classList.add("hover");
+    }
+    tx = x(p.step);
+    ty = y(p.val);
+    glide();
+    read(`step ${number(p.step)} · train ${p.train.toFixed(3)} · val ${p.val.toFixed(3)}`, p.step);
   });
   chart.addEventListener("pointerleave", () => {
     chart.classList.remove("hover");
-    readout.textContent = resting;
+    read(resting, null);
   });
+
+  // Tick labels are sized in screen pixels, not in viewBox units, so they
+  // stay readable when the chart shrinks on a phone.
+  new ResizeObserver(() => {
+    if (chart.clientWidth) chart.style.setProperty("--k", (W / chart.clientWidth).toFixed(3));
+  }).observe(chart);
 
   return function draw() {
     let shown = 0;
